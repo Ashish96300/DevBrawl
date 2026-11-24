@@ -28,7 +28,13 @@ export const registerSyncHandlers = (io, socket) => {
     if (roomId) {
       const snapshot = canvasSnapshots.get(roomId) || { records: {}, timestamp: 0 };
       if (data.added) Object.assign(snapshot.records, data.added);
-      if (data.updated) Object.assign(snapshot.records, data.updated);
+      if (data.updated) {
+        // tldraw sends updated as { id: [from, to] }. Store the NEW record ("to"),
+        // not the tuple, or snapshot resyncs hand arrays to editor.store.put and crash it.
+        Object.entries(data.updated).forEach(([id, change]) => {
+          snapshot.records[id] = Array.isArray(change) ? change[1] : change;
+        });
+      }
       if (data.removed) {
         Object.keys(data.removed).forEach((id) => delete snapshot.records[id]);
       }
