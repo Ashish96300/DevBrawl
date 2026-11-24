@@ -1,7 +1,7 @@
 // Canvas, Text, & Chat Synchronizer with snapshot resync support
 
 // In-memory canvas snapshots per room (cleared on server restart)
-const canvasSnapshots = new Map(); // roomId -> { records: { [id]: record }, timestamp: number }
+const canvasSnapshots = new Map(); // roomId -> { elements: Map<id, element>, timestamp: number }
 
 // In-memory code snapshots per room (cleared on server restart)
 const codeSnapshots = new Map(); // roomId -> { code: string, updatedAt: number }
@@ -41,17 +41,21 @@ export const registerSyncHandlers = (io, socket) => {
       snapshot.timestamp = Date.now();
       canvasSnapshots.set(roomId, snapshot);
     }
-    socket.to(data.roomId).emit("receive-canvas-change", data);
+    snapshot.timestamp = Date.now();
+    canvasSnapshots.set(roomId, snapshot);
+
+    socket.to(roomId).emit("receive-canvas-change", { roomId, elements });
   });
 
   // New joiner or reconnect asks for the full snapshot
   socket.on("canvas-state-request", (payload) => {
     const roomId = payload?.roomId;
     if (!roomId) return;
+
     const snapshot = canvasSnapshots.get(roomId);
     socket.emit("canvas-state-response", {
       roomId,
-      records: snapshot?.records || {},
+      elements: snapshot ? Array.from(snapshot.elements.values()) : [],
     });
   });
 

@@ -1,6 +1,5 @@
 import './App.css'
-import 'tldraw/tldraw.css'
-import CollaborativeCanvas from './utils/tldraw'
+import CollaborativeCanvas from './utils/ExcalidrawCanvas'
 import { useEffect } from 'react'
 import { socket } from './utils/socket'
 
