@@ -313,6 +313,9 @@ DevBrawl/
 ```javascript
 // Socket.io for: code sync, canvas sync, chat, turn management
 // Backend/src/handlers/ + Backend/src/utils/socket.js
+// tldraw styles are imported with the canvas component (Frontend/src/utils/tldraw.jsx):
+//   import 'tldraw/tldraw.css'
+// Do not remove this import — without it the canvas renders unstyled and unusable.
 ```
 
 ### 5. Turn-Based Gameplay
