@@ -7,7 +7,7 @@
 A real-time multiplayer coding interview platform where developers:
 - Join rooms and take turns solving AI-generated challenges
 - Code collaboratively with Monaco Editor (VS Code in browser)
-- Whiteboard together with tldraw canvas
+- Whiteboard together with Excalidraw canvas
 - Get instant feedback via automated tests + AI code review
 - Compete on leaderboards with gamified scoring
 
@@ -19,7 +19,7 @@ A real-time multiplayer coding interview platform where developers:
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              CLIENT (React + Vite)                           │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌──────────────────┐   │
-│  │ Monaco Edit │  │  tldraw     │  │  Socket.io  │  │  LiveKit/Daily   │   │
+│  │ Monaco Edit │  │  Excalidraw │  │  Socket.io  │  │  LiveKit/Daily   │   │
 │  │    or       │  │  Canvas     │  │  Client     │  │  Voice/Video     │   │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └──────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -271,7 +271,7 @@ DevBrawl/
 │   │   ├── components/         # React components
 │   │   ├── pages/              # Page components
 │   │   ├── store/              # Zustand state
-│   │   ├── utils/              # Socket, axios, tldraw
+│   │   ├── utils/              # Socket, axios, Excalidraw canvas
 │   │   └── main.jsx
 │   ├── Dockerfile              # Production (nginx)
 │   ├── Dockerfile.dev          # Development
@@ -313,9 +313,10 @@ DevBrawl/
 ```javascript
 // Socket.io for: code sync, canvas sync, chat, turn management
 // Backend/src/handlers/ + Backend/src/utils/socket.js
-// tldraw styles are imported with the canvas component (Frontend/src/utils/tldraw.jsx):
-//   import 'tldraw/tldraw.css'
-// Do not remove this import — without it the canvas renders unstyled and unusable.
+// Canvas: Excalidraw (MIT) with element-level sync through the existing Socket.IO room.
+// Frontend/src/utils/ExcalidrawCanvas.jsx sends only changed elements + tombstones.
+// Snapshot requests on mount/reconnect restore the board; tldraw was removed because
+// its SDK license no longer permits production use without a paid/hobby license key.
 ```
 
 ### 5. Turn-Based Gameplay
@@ -455,7 +456,8 @@ git checkout main && git pull && git branch -d feature/descriptive-name
 
 - **Piston** — Open source code execution engine
 - **Monaco Editor** — VS Code editor in browser
-- **tldraw** — Infinite canvas library
+- **Excalidraw** — MIT licensed infinite canvas library
+- **tldraw** — Replaced due to production license restrictions
 - **LiveKit** — WebRTC infrastructure
 - **Google Gemini** — Generous free AI tier
 - **Oracle Cloud** — Incredible Always Free tier
