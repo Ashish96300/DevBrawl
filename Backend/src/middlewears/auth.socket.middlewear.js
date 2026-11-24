@@ -1,6 +1,6 @@
-import jwt from "jsonwebtoken";
 import { User } from "../model/user.model.js";
 import { ApiError } from "../utils/apiError.js";
+import { verifyAccessToken } from "../utils/verifyAccessToken.js";
 
 export const socketAuthMiddleware = async (socket, next) => {
     try {
@@ -13,7 +13,7 @@ export const socketAuthMiddleware = async (socket, next) => {
         }
 
 
-        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const decodedToken = verifyAccessToken(token);
 
         const user = await User.findById(decodedToken?._id).select("-password -refreshToken");
 
@@ -26,6 +26,9 @@ export const socketAuthMiddleware = async (socket, next) => {
         next();
     } catch (error) {
         console.error("🔒 Socket Auth Failure:", error.message);
-        return next(new ApiError(401, "Authentication error: Invalid or expired token"));
+        // Client reads err.data.code in its connect_error handler to decide to log out.
+        const authError = new ApiError(401, "Authentication error: Invalid or expired token");
+        authError.data = { code: error.code || "TOKEN_INVALID" };
+        return next(authError);
     }
 };

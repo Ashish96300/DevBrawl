@@ -4,6 +4,46 @@ import api from '../utils/axios'
 import { socket } from '../utils/socket'
 import { jwtDecode } from 'jwt-decode'
 
+const AUTH_PAGES = ['/login', '/register']
+
+export const redirectToLogin = () => {
+  if (!AUTH_PAGES.includes(window.location.pathname)) {
+    window.location.href = '/login'
+  }
+}
+
+// The backend rejects expired/invalid tokens with these codes (REST body.code, socket err.data.code).
+const isAuthFailure = (code, message = '') =>
+  code === 'TOKEN_EXPIRED' || code === 'TOKEN_INVALID' || /Authentication error/i.test(message)
+
+// Logs the user out the moment the JWT expires instead of waiting for the next
+// request to fail with "jwt expired". setTimeout caps at ~24.8 days, so re-check on fire.
+let expiryTimer = null
+const clearExpiryTimer = () => {
+  if (expiryTimer) clearTimeout(expiryTimer)
+  expiryTimer = null
+}
+const scheduleExpiryLogout = (token) => {
+  clearExpiryTimer()
+  if (!token) return
+  let expMs
+  try {
+    expMs = jwtDecode(token).exp * 1000
+  } catch {
+    return
+  }
+  const wait = Math.min(Math.max(expMs - Date.now(), 0), 2 ** 31 - 1)
+  expiryTimer = setTimeout(() => {
+    const state = useAuthStore.getState()
+    if (state.isTokenExpired(state.token)) {
+      state.logout()
+      redirectToLogin()
+    } else {
+      scheduleExpiryLogout(state.token)
+    }
+  }, wait)
+}
+
 export const useAuthStore = create(
   persist(
     (set, get) => ({
@@ -33,7 +73,7 @@ export const useAuthStore = create(
             isAuthenticated: true,
           })
 
-          socket.auth = { token: accessToken }
+          scheduleExpiryLogout(accessToken)
           if (!socket.connected) socket.connect()
 
           return { success: true }
@@ -66,7 +106,7 @@ export const useAuthStore = create(
           return false
         }
 
-        socket.auth = { token }
+        scheduleExpiryLogout(token)
         if (!socket.connected) socket.connect()
         return true
       },
@@ -74,7 +114,10 @@ export const useAuthStore = create(
       setHasHydrated: (v) => set({ hasHydrated: v }),
 
       logout: () => {
-        if (socket.connected) socket.disconnect()
+        clearExpiryTimer()
+        // Always disconnect: a socket stuck in a reconnect loop is not "connected"
+        // but would keep retrying with the dead token.
+        socket.disconnect()
         set({
           user: null,
           token: null,
@@ -96,3 +139,14 @@ export const useAuthStore = create(
     }
   )
 )
+
+// Resolve the token at (re)connect time so reconnects never reuse a stale token.
+socket.auth = (cb) => cb({ token: useAuthStore.getState().token })
+
+socket.on('connect_error', (err) => {
+  if (isAuthFailure(err?.data?.code, err?.message)) {
+    console.warn('🔒 Socket auth rejected — logging out:', err.message)
+    useAuthStore.getState().logout()
+    redirectToLogin()
+  }
+})

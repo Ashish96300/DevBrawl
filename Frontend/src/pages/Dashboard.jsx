@@ -20,9 +20,8 @@ export default function Dashboard() {
 
   // Ensure Socket Handshake is Authenticated on Component Mount
   useEffect(() => {
-    const token = useAuthStore.getState().token;
+    // socket.auth is a function (see authStore) so the token is always the latest one.
     if (!socket.connected) {
-      socket.auth = { token };
       socket.connect();
     }
   }, []);
