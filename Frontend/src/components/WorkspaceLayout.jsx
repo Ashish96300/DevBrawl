@@ -1,6 +1,6 @@
 import{ useState } from 'react';
 import { useRoomStore } from '../store/roomStore';
-import CollaborativeCanvas from '../utils/tldraw';
+import CollaborativeCanvas from '../utils/ExcalidrawCanvas';
 import MonacoEditor from './MonacoEditor';
 import api from '../utils/axios';
 

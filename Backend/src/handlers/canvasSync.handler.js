@@ -1,7 +1,7 @@
 // Canvas, Text, & Chat Synchronizer with snapshot resync support
 
 // In-memory canvas snapshots per room (cleared on server restart)
-const canvasSnapshots = new Map(); // roomId -> { records: { [id]: record }, timestamp: number }
+const canvasSnapshots = new Map(); // roomId -> { elements: Map<id, element>, timestamp: number }
 
 // In-memory code snapshots per room (cleared on server restart)
 const codeSnapshots = new Map(); // roomId -> { code: string, updatedAt: number }
@@ -23,29 +23,30 @@ export const registerSyncHandlers = (io, socket) => {
   });
 
   socket.on("canvas-change", (data) => {
-    // Maintain snapshot
-    const roomId = data.roomId;
-    if (roomId) {
-      const snapshot = canvasSnapshots.get(roomId) || { records: {}, timestamp: 0 };
-      if (data.added) Object.assign(snapshot.records, data.added);
-      if (data.updated) Object.assign(snapshot.records, data.updated);
-      if (data.removed) {
-        Object.keys(data.removed).forEach((id) => delete snapshot.records[id]);
-      }
-      snapshot.timestamp = Date.now();
-      canvasSnapshots.set(roomId, snapshot);
+    const roomId = data?.roomId;
+    const elements = data?.elements;
+
+    if (!roomId || !Array.isArray(elements) || elements.length === 0) return;
+
+    const snapshot = canvasSnapshots.get(roomId) || { elements: new Map(), timestamp: 0 };
+    for (const element of elements) {
+      if (element?.id) snapshot.elements.set(element.id, element);
     }
-    socket.to(data.roomId).emit("receive-canvas-change", data);
+    snapshot.timestamp = Date.now();
+    canvasSnapshots.set(roomId, snapshot);
+
+    socket.to(roomId).emit("receive-canvas-change", { roomId, elements });
   });
 
   // New joiner or reconnect asks for the full snapshot
   socket.on("canvas-state-request", (payload) => {
     const roomId = payload?.roomId;
     if (!roomId) return;
+
     const snapshot = canvasSnapshots.get(roomId);
     socket.emit("canvas-state-response", {
       roomId,
-      records: snapshot?.records || {},
+      elements: snapshot ? Array.from(snapshot.elements.values()) : [],
     });
   });
 
