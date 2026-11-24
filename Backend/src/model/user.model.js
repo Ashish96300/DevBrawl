@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { getAccessSecret, getAccessExpiry } from "../utils/verifyAccessToken.js";
 
 const userSchema = new mongoose.Schema(
     {
@@ -27,8 +28,8 @@ userSchema.methods.isPasswordCorrect = async function (password) {
 userSchema.methods.generateAccessToken = function () {
     return jwt.sign(
         { _id: this._id, email: this.email, username: this.username, role: this.role },
-        process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "7d" }
+        getAccessSecret(),
+        { expiresIn: getAccessExpiry() }
     );
 };
 
