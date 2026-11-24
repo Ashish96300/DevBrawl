@@ -1,3 +1,4 @@
+import 'tldraw/tldraw.css'
 import { Tldraw, useEditor } from 'tldraw'
 import { useEffect, useRef } from 'react'
 import { socket } from './socket'
